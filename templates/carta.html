@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carta de Evaluación — {{ evl.collaborator.name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body style="background:#e8e8e8;">
+
+<!-- Barra de acciones (no se imprime) -->
+<div class="no-print d-flex align-items-center justify-content-between px-3 py-2" style="background:var(--app-red);color:#fff;">
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('view_evaluation', eval_id=evl.id) }}" class="btn btn-sm btn-light">
+      <i class="bi bi-arrow-left"></i> Volver
+    </a>
+    <span style="font-size:.85rem;">Carta de evaluación — <strong>{{ evl.collaborator.name }}</strong></span>
+  </div>
+  <button onclick="window.print()" class="btn btn-sm btn-light">
+    <i class="bi bi-printer me-1"></i> Imprimir / Guardar PDF
+  </button>
+</div>
+
+<!-- CARTA CORPORATIVA -->
+<div class="carta-page">
+
+  <!-- Encabezado -->
+  <div class="carta-header">
+    <div>
+      <img src="{{ url_for('static', filename='css/img/Aramark.png') }}"
+           class="carta-header-logo" alt="Aramark">
+    </div>
+    <div class="carta-header-title">
+      Evaluación de Desempeño<br>
+      <span style="font-size:.85rem;opacity:.88;font-weight:400;">Minera Escondida Ltda.</span>
+    </div>
+  </div>
+
+  <div class="carta-body">
+
+    <!-- Título -->
+    <div class="carta-subtitle">Informe de evaluación de turno</div>
+
+    <!-- Datos del colaborador -->
+    <div class="carta-info-grid">
+      <div class="carta-info-item">
+        <span class="carta-info-label">Colaborador:</span><br>
+        {{ evl.collaborator.name }}
+      </div>
+      <div class="carta-info-item">
+        <span class="carta-info-label">Cargo:</span><br>
+        {{ evl.collaborator.cargo or 'Recepcionista' }}
+      </div>
+      <div class="carta-info-item">
+        <span class="carta-info-label">Período evaluado:</span><br>
+        {{ evl.period_start.strftime('%d/%m/%Y') }} al {{ evl.period_end.strftime('%d/%m/%Y') }}
+      </div>
+      <div class="carta-info-item">
+        <span class="carta-info-label">Evaluador:</span><br>
+        {{ evl.evaluator.name }}
+      </div>
+      <div class="carta-info-item">
+        <span class="carta-info-label">Fecha del informe:</span><br>
+        {{ today.strftime('%d de %B de %Y') }}
+      </div>
+      <div class="carta-info-item">
+        <span class="carta-info-label">Empresa:</span><br>
+        Aramark / Minera Escondida
+      </div>
+    </div>
+
+    <!-- Calificación final -->
+    {% set pct = evl.overall_pct() %}
+    {% set grade = evl.letter_grade() %}
+    {% set gcolor = evl.grade_color() %}
+    <div class="carta-grade-box mb-4" style="color:{{ gcolor }};">
+      <div class="carta-grade-label">Calificación final del turno</div>
+      <div class="carta-grade-value">{{ grade }}</div>
+      <div class="carta-grade-pct">{{ pct }}% del puntaje total</div>
+    </div>
+
+    <!-- Tablas KPI por categoría -->
+    {% set score_map = {} %}
+    {% for s in evl.scores %}
+      {% set _ = score_map.update({s.kpi_item_id: s}) %}
+    {% endfor %}
+
+    {% for cat in cats %}
+    {% if cat.active %}
+    {% set cat_obt = namespace(v=0) %}
+    {% set cat_max = namespace(v=0) %}
+    {% for item in cat.items %}
+      {% if item.active %}
+        {% set s = score_map.get(item.id) %}
+        {% if s %}
+          {% set cat_obt.v = cat_obt.v + s.score %}
+          {% set cat_max.v = cat_max.v + item.max_points %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+    {% set cat_pct = (cat_obt.v / cat_max.v * 100) | round | int if cat_max.v > 0 else 0 %}
+
+    <div style="margin-bottom:1.5rem;">
+      <table class="carta-kpi-table">
+        <thead>
+          <tr>
+            <th colspan="3">{{ cat.name }}</th>
+            <th style="text-align:right;width:120px;">{{ cat_obt.v }}/{{ cat_max.v }} pts ({{ cat_pct }}%)</th>
+          </tr>
+          <tr style="background:rgba(0,0,0,.08);">
+            <th style="width:50%;color:#fff;font-weight:600;">Criterio</th>
+            <th style="text-align:center;color:#fff;font-weight:600;">Máx.</th>
+            <th style="text-align:center;color:#fff;font-weight:600;">Evaluación</th>
+            <th style="text-align:center;color:#fff;font-weight:600;">Puntaje</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in cat.items %}
+          {% if item.active %}
+          {% set s = score_map.get(item.id) %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td style="text-align:center;font-weight:600;">{{ item.max_points }}</td>
+            <td style="text-align:center;">
+              {% if s %}
+                {% if s.answer == 'SI' %}
+                  <span class="carta-kpi-yes">✓ SÍ</span>
+                {% else %}
+                  <span class="carta-kpi-no">✗ NO</span>
+                {% endif %}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td style="text-align:center;font-weight:700;">
+              {% if s %}{{ s.score }}{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+          <tr class="carta-total-row">
+            <td colspan="2">Total categoría</td>
+            <td style="text-align:center;">{{ cat_pct }}%</td>
+            <td style="text-align:center;">{{ cat_obt.v }} / {{ cat_max.v }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Resumen total -->
+    {% set obt, pos = evl.total_score() %}
+    <div style="background:#f3e8e8;border-radius:.5rem;padding:.8rem 1rem;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:700;color:var(--app-red-dark);">PUNTAJE TOTAL OBTENIDO</span>
+      <span style="font-size:1.2rem;font-weight:800;color:{{ gcolor }};">{{ obt }} / {{ pos }} puntos &nbsp;({{ pct }}%)</span>
+    </div>
+
+    <!-- Escala de calificaciones -->
+    <div style="font-size:.78rem;color:#666;margin-bottom:1.5rem;border:1px solid #eee;border-radius:.4rem;padding:.6rem 1rem;">
+      <strong style="color:#444;">Escala de calificación:</strong>
+      &nbsp;
+      <span style="color:#0d6832;font-weight:600;">Excelente ≥90%</span> &nbsp;|&nbsp;
+      <span style="color:#1a6ba0;font-weight:600;">Bueno 70–89%</span> &nbsp;|&nbsp;
+      <span style="color:#c27c00;font-weight:600;">Regular 50–69%</span> &nbsp;|&nbsp;
+      <span style="color:#b42318;font-weight:600;">Deficiente &lt;50%</span>
+    </div>
+
+    <!-- Observaciones -->
+    {% if evl.observations %}
+    <div style="margin-bottom:1.2rem;">
+      <div class="carta-section-title">Observaciones del evaluador</div>
+      <div class="carta-text-box">{{ evl.observations if evl.observations else '—' }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Compromisos -->
+    <div style="margin-bottom:1.5rem;">
+      <div class="carta-section-title">Compromisos del colaborador para el próximo turno</div>
+      <div class="carta-text-box">{{ evl.commitments if evl.commitments else '(Sin compromisos registrados)' }}</div>
+    </div>
+
+    <!-- Texto legal -->
+    <p style="font-size:.78rem;color:#666;line-height:1.6;margin-bottom:1.5rem;">
+      La presente evaluación de desempeño ha sido realizada conforme a los estándares y procedimientos
+      internos de Aramark en el marco de los servicios prestados en Minera Escondida Ltda. Los resultados
+      reflejan el desempeño observado durante el período de turno indicado. Ambas partes declaran haber
+      revisado el contenido del presente informe y estar de acuerdo con lo expresado en él, comprometiéndose
+      a trabajar en las áreas de mejora identificadas.
+    </p>
+
+    <!-- Firmas -->
+    <div class="carta-firmas">
+      <div class="firma-block">
+        <div style="min-height:60px;border-bottom:2px solid #333;margin-bottom:.5rem;"></div>
+        <div class="firma-line">{{ evl.evaluator.name }}</div>
+        <div class="firma-role">Evaluador / Supervisor</div>
+        <div style="font-size:.75rem;color:#aaa;margin-top:.3rem;">Firma y Timbre</div>
+      </div>
+      <div class="firma-block">
+        <div style="min-height:60px;border-bottom:2px solid #333;margin-bottom:.5rem;"></div>
+        <div class="firma-line">{{ evl.collaborator.name }}</div>
+        <div class="firma-role">{{ evl.collaborator.cargo or 'Colaborador' }}</div>
+        <div style="font-size:.75rem;color:#aaa;margin-top:.3rem;">Firma y RUT</div>
+      </div>
+    </div>
+
+  </div><!-- /carta-body -->
+
+  <!-- Pie de página -->
+  <div class="carta-footer">
+    Aramark — Minera Escondida Ltda. &nbsp;|&nbsp;
+    Evaluación generada el {{ today.strftime('%d/%m/%Y') }} &nbsp;|&nbsp;
+    Período: {{ evl.period_start.strftime('%d/%m/%Y') }} – {{ evl.period_end.strftime('%d/%m/%Y') }}
+    &nbsp;|&nbsp; ID Evaluación: #{{ evl.id }}
+  </div>
+
+</div><!-- /carta-page -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

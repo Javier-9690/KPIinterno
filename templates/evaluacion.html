@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}Nueva Evaluación{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-2">
+  <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h5 class="mb-0 fw-bold" style="color:var(--app-red-dark);">
+    <i class="bi bi-plus-circle me-1"></i> Nueva evaluación (turno 10 días)
+  </h5>
+</div>
+
+<form method="POST" action="{{ url_for('save_evaluation') }}" id="evalForm">
+
+  <!-- Datos generales -->
+  <div class="kpi-card mb-4">
+    <div class="kpi-card-header"><i class="bi bi-person-badge me-1"></i> Datos del turno</div>
+    <div class="kpi-card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Colaborador</label>
+          <select name="collaborator_id" class="form-select" required>
+            <option value="">— Seleccionar —</option>
+            {% for c in collaborators %}
+              <option value="{{ c.id }}">{{ c.name }}{% if c.cargo %} — {{ c.cargo }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Inicio del turno</label>
+          <input type="date" name="period_start" class="form-control"
+                 value="{{ period_start }}" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Fin del turno</label>
+          <input type="date" name="period_end" class="form-control"
+                 value="{{ period_end }}" required>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Puntaje en tiempo real -->
+  <div class="score-summary-card no-print mb-4">
+    <div class="score-big" id="livePct">0%</div>
+    <div class="score-label">Puntaje total acumulado</div>
+    <div class="mt-2" style="font-size:.85rem;opacity:.85;" id="liveBreakdown">—</div>
+  </div>
+
+  <!-- KPIs por categoría -->
+  {% for cat in categories %}
+  <div class="category-block">
+    <div class="category-header">
+      <i class="bi bi-diagram-3 me-1"></i> {{ cat.name }}
+      <span class="ms-auto" style="opacity:.8;font-size:.8rem;">
+        Puntaje máx: <span id="catMax_{{ cat.id }}">{{ cat.items | selectattr('active') | sum(attribute='max_points') }}</span> pts
+        &nbsp;|&nbsp; Obtenidos: <span id="catObt_{{ cat.id }}">0</span> pts
+      </span>
+    </div>
+    {% for item in cat.items %}
+    {% if item.active %}
+    <div class="kpi-row">
+      <div class="kpi-row-name">{{ item.name }}</div>
+      <div class="kpi-row-pts me-2">{{ item.max_points }} pts</div>
+      <div class="kpi-toggle">
+        <input type="hidden" name="kpi_{{ item.id }}" id="val_{{ item.id }}" value="NO">
+        <button type="button" class="kpi-btn si" onclick="setKpi({{ item.id }}, 'SI', {{ item.max_points }}, {{ cat.id }})">SI</button>
+        <button type="button" class="kpi-btn no active" onclick="setKpi({{ item.id }}, 'NO', {{ item.max_points }}, {{ cat.id }})">NO</button>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <!-- Observaciones y compromisos -->
+  <div class="kpi-card mb-4">
+    <div class="kpi-card-header"><i class="bi bi-chat-left-text me-1"></i> Observaciones y compromisos</div>
+    <div class="kpi-card-body">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Observaciones del evaluador</label>
+        <textarea name="observations" class="form-control" rows="3"
+                  placeholder="Comentarios generales sobre el desempeño del turno..."></textarea>
+      </div>
+      <div>
+        <label class="form-label fw-semibold">Compromisos del colaborador para el próximo turno</label>
+        <textarea name="commitments" class="form-control" rows="3"
+                  placeholder="Acciones de mejora acordadas..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botones -->
+  <div class="d-flex gap-2 justify-content-end flex-wrap">
+    <input type="hidden" name="finalize" id="finalizeInput" value="0">
+    <button type="submit" class="btn btn-outline-secondary" onclick="document.getElementById('finalizeInput').value='0'">
+      <i class="bi bi-floppy me-1"></i> Guardar borrador
+    </button>
+    <button type="submit" class="btn text-white" style="background:var(--app-red);"
+            onclick="document.getElementById('finalizeInput').value='1'">
+      <i class="bi bi-check2-circle me-1"></i> Finalizar y generar carta
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Estructura de KPIs para el cálculo en tiempo real
+const catData = {};
+{% for cat in categories %}
+  {% if cat.active %}
+  catData[{{ cat.id }}] = { max: {{ cat.items | selectattr('active') | sum(attribute='max_points') }}, obt: 0 };
+  {% endif %}
+{% endfor %}
+
+const totalMax = {{ categories | sum(attribute='items') | list | selectattr('active') | sum(attribute='max_points') }};
+
+function setKpi(itemId, answer, pts, catId) {
+  const prevAnswer = document.getElementById('val_' + itemId).value;
+  document.getElementById('val_' + itemId).value = answer;
+
+  // Toggle buttons
+  const row = event.target.closest('.kpi-row');
+  row.querySelectorAll('.kpi-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  // Actualizar categoría
+  const diff = (answer === 'SI' ? pts : 0) - (prevAnswer === 'SI' ? pts : 0);
+  catData[catId].obt += diff;
+  document.getElementById('catObt_' + catId).textContent = catData[catId].obt;
+
+  updateTotal();
+}
+
+function updateTotal() {
+  let totalObt = 0;
+  let breakdown = [];
+  for (const [catId, d] of Object.entries(catData)) {
+    totalObt += d.obt;
+    const catEl = document.getElementById('catMax_' + catId);
+    if (catEl) {
+      const catName = catEl.closest('.category-header').querySelector('i + span')?.textContent
+        || catEl.closest('.category-header').textContent.trim().split('Puntaje')[0].trim();
+      const pct = d.max > 0 ? Math.round(d.obt / d.max * 100) : 0;
+      breakdown.push(pct + '%');
+    }
+  }
+  const pct = totalMax > 0 ? Math.round(totalObt / totalMax * 100) : 0;
+  document.getElementById('livePct').textContent = pct + '%';
+
+  let grade = 'Deficiente', color = '#b42318';
+  if (pct >= 90) { grade = 'Excelente'; color = '#0d6832'; }
+  else if (pct >= 70) { grade = 'Bueno'; color = '#1a6ba0'; }
+  else if (pct >= 50) { grade = 'Regular'; color = '#c27c00'; }
+  document.getElementById('livePct').style.color = '#fff';
+  document.getElementById('liveBreakdown').textContent = grade + ' — ' + totalObt + ' / ' + totalMax + ' pts';
+}
+</script>
+{% endblock %}

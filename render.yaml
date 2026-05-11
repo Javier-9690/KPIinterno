@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: kpi-evaluaciones
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kpi-evaluaciones-db
+          property: connectionString
+
+databases:
+  - name: kpi-evaluaciones-db
+    plan: free

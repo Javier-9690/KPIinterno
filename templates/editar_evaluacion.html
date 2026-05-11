@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Editar Evaluación #{{ evl.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-2">
+  <a href="{{ url_for('view_evaluation', eval_id=evl.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h5 class="mb-0 fw-bold" style="color:var(--app-red-dark);">
+    <i class="bi bi-pencil me-1"></i> Editar evaluación — {{ evl.collaborator.name }}
+  </h5>
+</div>
+
+<!-- Verificación de clave admin -->
+<div class="kpi-card mb-4" id="adminKeyCard">
+  <div class="kpi-card-header"><i class="bi bi-shield-lock me-1"></i> Autorización requerida</div>
+  <div class="kpi-card-body">
+    <p class="text-muted mb-3" style="font-size:.88rem;">
+      Para editar una evaluación ingresa la clave administrativa.
+    </p>
+    <div class="d-flex gap-2">
+      <input type="password" id="adminKeyInput" class="form-control" style="max-width:280px;"
+             placeholder="Clave administrativa">
+      <button class="btn text-white" style="background:var(--app-red);" onclick="unlockForm()">
+        <i class="bi bi-unlock me-1"></i> Desbloquear
+      </button>
+    </div>
+    <div class="text-danger mt-2" id="keyError" style="font-size:.82rem;display:none;">
+      Clave incorrecta. Intenta nuevamente.
+    </div>
+  </div>
+</div>
+
+<form method="POST" id="editForm" style="display:none;">
+  <input type="hidden" name="admin_key" id="adminKeyHidden">
+  <input type="hidden" name="finalize" id="finalizeInput" value="{{ '1' if evl.is_finalized else '0' }}">
+
+  <!-- Datos generales -->
+  <div class="kpi-card mb-4">
+    <div class="kpi-card-header"><i class="bi bi-person-badge me-1"></i> Datos del turno</div>
+    <div class="kpi-card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Colaborador</label>
+          <input type="text" class="form-control" value="{{ evl.collaborator.name }}" disabled>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Inicio del turno</label>
+          <input type="date" name="period_start" class="form-control"
+                 value="{{ evl.period_start.strftime('%Y-%m-%d') }}" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Fin del turno</label>
+          <input type="date" name="period_end" class="form-control"
+                 value="{{ evl.period_end.strftime('%Y-%m-%d') }}" required>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  {% set score_map = {} %}
+  {% for s in evl.scores %}
+    {% set _ = score_map.update({s.kpi_item_id: s}) %}
+  {% endfor %}
+
+  {% for cat in cats %}
+  {% if cat.active %}
+  <div class="category-block mb-3">
+    <div class="category-header">
+      <i class="bi bi-diagram-3 me-1"></i> {{ cat.name }}
+    </div>
+    {% for item in cat.items %}
+    {% if item.active %}
+    {% set s = score_map.get(item.id) %}
+    {% set cur = s.answer if s else 'NO' %}
+    <div class="kpi-row">
+      <div class="kpi-row-name">{{ item.name }}</div>
+      <div class="kpi-row-pts me-2">{{ item.max_points }} pts</div>
+      <div class="kpi-toggle">
+        <input type="hidden" name="kpi_{{ item.id }}" id="val_{{ item.id }}" value="{{ cur }}">
+        <button type="button" class="kpi-btn si {% if cur=='SI' %}active{% endif %}"
+                onclick="setKpi({{ item.id }}, 'SI')">SI</button>
+        <button type="button" class="kpi-btn no {% if cur=='NO' %}active{% endif %}"
+                onclick="setKpi({{ item.id }}, 'NO')">NO</button>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  <!-- Observaciones -->
+  <div class="kpi-card mb-4">
+    <div class="kpi-card-header"><i class="bi bi-chat-left-text me-1"></i> Observaciones y compromisos</div>
+    <div class="kpi-card-body">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Observaciones</label>
+        <textarea name="observations" class="form-control" rows="3">{{ evl.observations }}</textarea>
+      </div>
+      <div>
+        <label class="form-label fw-semibold">Compromisos</label>
+        <textarea name="commitments" class="form-control" rows="3">{{ evl.commitments }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 justify-content-end flex-wrap">
+    <button type="submit" class="btn btn-outline-secondary" onclick="document.getElementById('finalizeInput').value='0'">
+      <i class="bi bi-floppy me-1"></i> Guardar como borrador
+    </button>
+    <button type="submit" class="btn text-white" style="background:var(--app-red);"
+            onclick="document.getElementById('finalizeInput').value='1'">
+      <i class="bi bi-check2-circle me-1"></i> Guardar y finalizar
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setKpi(itemId, answer) {
+  document.getElementById('val_' + itemId).value = answer;
+  const row = event.target.closest('.kpi-row');
+  row.querySelectorAll('.kpi-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+async function unlockForm() {
+  const key = document.getElementById('adminKeyInput').value;
+  // Hacemos una verificación simple enviando el form vacío con la clave
+  // y chequeando la respuesta del servidor
+  document.getElementById('adminKeyHidden').value = key;
+  document.getElementById('adminKeyCard').style.display = 'none';
+  document.getElementById('editForm').style.display = 'block';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Evaluación #{{ evl.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-2 flex-wrap">
+  <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h5 class="mb-0 fw-bold" style="color:var(--app-red-dark);">
+    Evaluación — {{ evl.collaborator.name }}
+  </h5>
+  <span class="ms-auto d-flex gap-2">
+    <a href="{{ url_for('edit_evaluation', eval_id=evl.id) }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-pencil me-1"></i> Editar
+    </a>
+    <a href="{{ url_for('carta', eval_id=evl.id) }}" class="btn btn-sm text-white" style="background:var(--app-red);">
+      <i class="bi bi-file-earmark-text me-1"></i> Ver carta
+    </a>
+  </span>
+</div>
+
+<!-- Score general -->
+{% set pct = evl.overall_pct() %}
+{% set grade = evl.letter_grade() %}
+<div class="score-summary-card mb-4">
+  <div class="score-big">{{ pct }}%</div>
+  <div style="font-size:1.1rem;font-weight:700;margin-top:.3rem;">{{ grade }}</div>
+  <div class="score-label">
+    Período: {{ evl.period_start.strftime('%d/%m/%Y') }} – {{ evl.period_end.strftime('%d/%m/%Y') }}
+    &nbsp;|&nbsp; Evaluador: {{ evl.evaluator.name }}
+    &nbsp;|&nbsp;
+    {% if evl.is_finalized %}
+      <span style="color:#a8f5c8;">✓ Finalizada</span>
+    {% else %}
+      <span style="color:#ffd080;">⚠ Borrador</span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Desglose por categoría -->
+{% set score_map = {} %}
+{% for s in evl.scores %}
+  {% set _ = score_map.update({s.kpi_item_id: s}) %}
+{% endfor %}
+
+{% for cat in cats %}
+{% if cat.active %}
+<div class="category-block mb-3">
+  {% set cat_obt = namespace(v=0) %}
+  {% set cat_max = namespace(v=0) %}
+  {% for item in cat.items %}
+    {% if item.active %}
+      {% set s = score_map.get(item.id) %}
+      {% if s %}
+        {% set cat_obt.v = cat_obt.v + s.score %}
+        {% set cat_max.v = cat_max.v + item.max_points %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+  {% set cat_pct = (cat_obt.v / cat_max.v * 100) | round | int if cat_max.v > 0 else 0 %}
+
+  <div class="category-header">
+    <span><i class="bi bi-diagram-3 me-1"></i> {{ cat.name }}</span>
+    <span class="ms-auto" style="font-size:.85rem;opacity:.9;">
+      {{ cat_obt.v }} / {{ cat_max.v }} pts &nbsp;({{ cat_pct }}%)
+    </span>
+  </div>
+
+  <!-- Barra de la categoría -->
+  <div class="px-3 pt-2 pb-1">
+    <div class="kpi-progress-wrap">
+      <div class="kpi-progress-bar"
+           style="width:{{ cat_pct }}%;background:{% if cat_pct>=90 %}#0d6832{% elif cat_pct>=70 %}#1a6ba0{% elif cat_pct>=50 %}#c27c00{% else %}#b42318{% endif %};"></div>
+    </div>
+  </div>
+
+  {% for item in cat.items %}
+  {% if item.active %}
+  {% set s = score_map.get(item.id) %}
+  <div class="kpi-row">
+    <div class="kpi-row-name">{{ item.name }}</div>
+    <div class="kpi-row-pts me-3">{{ item.max_points }} pts</div>
+    {% if s %}
+      {% if s.answer == 'SI' %}
+        <span class="badge" style="background:#0d6832;">SI ✓ +{{ s.score }}</span>
+      {% else %}
+        <span class="badge" style="background:#b42318;">NO ✗ 0</span>
+      {% endif %}
+    {% else %}
+      <span class="badge bg-secondary">Sin dato</span>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- Observaciones y compromisos -->
+{% if evl.observations or evl.commitments %}
+<div class="kpi-card mt-3">
+  <div class="kpi-card-header"><i class="bi bi-chat-left-text me-1"></i> Observaciones y compromisos</div>
+  <div class="kpi-card-body">
+    {% if evl.observations %}
+    <div class="mb-3">
+      <div class="carta-section-title">Observaciones</div>
+      <div class="carta-text-box">{{ evl.observations }}</div>
+    </div>
+    {% endif %}
+    {% if evl.commitments %}
+    <div>
+      <div class="carta-section-title">Compromisos</div>
+      <div class="carta-text-box">{{ evl.commitments }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
