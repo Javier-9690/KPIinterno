@@ -10,18 +10,21 @@ load_dotenv()
 
 SANTIAGO_TZ = ZoneInfo('America/Santiago')
 
+
 def now_santiago():
     return datetime.now(SANTIAGO_TZ).replace(tzinfo=None)
+
 
 def today_santiago():
     return datetime.now(SANTIAGO_TZ).date()
 
-# ── App ───────────────────────────────────────────────────────────────────────
+
+# --- App setup ----------------------------------------------------------------
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'kpi-secret-2025')
 
 # Render entrega DATABASE_URL con prefijo "postgres://" (obsoleto).
-# SQLAlchemy 2.x requiere "postgresql://". Lo corregimos aquí.
+# SQLAlchemy 2.x requiere "postgresql://". Lo corregimos aqui.
 _db_url = os.environ.get('DATABASE_URL', 'sqlite:///kpi.db')
 if _db_url.startswith('postgres://'):
     _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
@@ -31,17 +34,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
 
-# ── Seed inicial ──────────────────────────────────────────────────────────────
+# --- Seed inicial -------------------------------------------------------------
 def seed_database():
-    """Carga datos iniciales si la BD está vacía."""
+    """Carga datos iniciales si la BD esta vacia."""
     if KPICategory.query.first():
         return
 
-    # Clave admin por defecto
     if not Config.query.get('admin_key'):
         Config.set('admin_key', 'Admin2025!')
 
-    # Categorías y KPIs del Excel
     cats_data = [
         {
             'name': 'Eficiencia y Responsabilidad',
@@ -51,7 +52,7 @@ def seed_database():
                 ('Calidad del trabajo',              20),
                 ('Cumplimiento de procedimientos',   20),
                 ('Cumplimiento de tiempos',          20),
-                ('Resolución de problemas',          10),
+                ('Resolucion de problemas',          10),
             ]
         },
         {
@@ -64,13 +65,13 @@ def seed_database():
             ]
         },
         {
-            'name': 'Compañerismo',
+            'name': 'Companerismo',
             'order': 3,
             'items': [
                 ('Apoyo al equipo',                         30),
-                ('Comunicación y entrega de información',   30),
+                ('Comunicacion y entrega de informacion',   30),
                 ('Respeto y conducta laboral',              25),
-                ('Colaboración ante contingencias',         15),
+                ('Colaboracion ante contingencias',         15),
             ]
         },
     ]
@@ -83,7 +84,6 @@ def seed_database():
             db.session.add(KPIItem(category_id=cat.id, name=item_name,
                                    max_points=pts, order=i))
 
-    # Colaboradores del Excel
     colaboradores = [
         ('MARCELA CASTRO',    'Recepcionista'),
         ('ESTEFANIA GRANDON', 'Recepcionista'),
@@ -92,13 +92,12 @@ def seed_database():
         ('BASTIAN HERNANDEZ', 'Recepcionista'),
         ('RICARDO ALCAYAGA',  'Recepcionista'),
         ('CONSUELO NEIRA',    'Recepcionista'),
-        ('JONY MERIÑO',       'Recepcionista'),
+        ('JONY MERINO',       'Recepcionista'),
         ('JAVIER RIVERA',     'Recepcionista'),
     ]
     for nombre, cargo in colaboradores:
         db.session.add(Collaborator(name=nombre, cargo=cargo))
 
-    # Evaluador inicial
     ev = Evaluator(name='ADMINISTRADOR')
     ev.set_password('Admin2025!')
     db.session.add(ev)
@@ -106,13 +105,15 @@ def seed_database():
     db.session.commit()
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# --- Helpers ------------------------------------------------------------------
 def check_admin(key):
     return key == Config.get('admin_key', 'Admin2025!')
+
 
 def current_evaluator():
     eid = session.get('evaluator_id')
     return Evaluator.query.get(eid) if eid else None
+
 
 def require_login():
     if not current_evaluator():
@@ -120,9 +121,9 @@ def require_login():
     return None
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# RUTAS PÚBLICAS
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
+# RUTAS PUBLICAS
+# =============================================================================
 
 @app.route('/')
 def index():
@@ -141,7 +142,7 @@ def login():
     if ev and ev.active and ev.check_password(pw):
         session['evaluator_id'] = ev.id
         return redirect(url_for('dashboard'))
-    flash('Contraseña incorrecta o evaluador inactivo.', 'danger')
+    flash('Contrasena incorrecta o evaluador inactivo.', 'danger')
     return redirect(url_for('index'))
 
 
@@ -151,14 +152,15 @@ def logout():
     return redirect(url_for('index'))
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # DASHBOARD
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 
 @app.route('/dashboard')
 def dashboard():
     redir = require_login()
-    if redir: return redir
+    if redir:
+        return redir
     ev = current_evaluator()
 
     evals = (Evaluation.query
@@ -171,25 +173,25 @@ def dashboard():
                            collaborators=collaborators, today=today_santiago())
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# NUEVA EVALUACIÓN
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
+# NUEVA EVALUACION
+# =============================================================================
 
 @app.route('/evaluacion/nueva')
 def new_evaluation():
     redir = require_login()
-    if redir: return redir
+    if redir:
+        return redir
     ev = current_evaluator()
 
     collaborators = Collaborator.query.filter_by(active=True).order_by(Collaborator.name).all()
     categories    = (KPICategory.query.filter_by(active=True)
                      .order_by(KPICategory.order).all())
 
-    today = today_santiago()
+    today        = today_santiago()
     period_end   = today
     period_start = today - timedelta(days=9)
 
-    # Calcula el total de puntos posibles para usarlo en el JS del template
     total_max = sum(
         item.max_points
         for cat in categories
@@ -208,7 +210,8 @@ def new_evaluation():
 @app.route('/evaluacion/guardar', methods=['POST'])
 def save_evaluation():
     redir = require_login()
-    if redir: return redir
+    if redir:
+        return redir
     ev = current_evaluator()
 
     try:
@@ -251,14 +254,15 @@ def save_evaluation():
         return redirect(url_for('new_evaluation'))
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# VER / EDITAR EVALUACIÓN
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
+# VER / EDITAR / ELIMINAR EVALUACION
+# =============================================================================
 
 @app.route('/evaluacion/<int:eval_id>')
 def view_evaluation(eval_id):
     redir = require_login()
-    if redir: return redir
+    if redir:
+        return redir
     ev   = current_evaluator()
     evl  = Evaluation.query.get_or_404(eval_id)
     cats = (KPICategory.query.filter_by(active=True)
@@ -269,7 +273,8 @@ def view_evaluation(eval_id):
 @app.route('/evaluacion/<int:eval_id>/editar', methods=['GET', 'POST'])
 def edit_evaluation(eval_id):
     redir = require_login()
-    if redir: return redir
+    if redir:
+        return redir
     ev  = current_evaluator()
     evl = Evaluation.query.get_or_404(eval_id)
 
@@ -279,11 +284,11 @@ def edit_evaluation(eval_id):
             flash('Clave administrativa incorrecta.', 'danger')
             return redirect(url_for('edit_evaluation', eval_id=eval_id))
 
-        evl.period_start  = datetime.strptime(request.form['period_start'], '%Y-%m-%d').date()
-        evl.period_end    = datetime.strptime(request.form['period_end'],   '%Y-%m-%d').date()
-        evl.observations  = request.form.get('observations', '').strip()
-        evl.commitments   = request.form.get('commitments', '').strip()
-        evl.is_finalized  = request.form.get('finalize') == '1'
+        evl.period_start = datetime.strptime(request.form['period_start'], '%Y-%m-%d').date()
+        evl.period_end   = datetime.strptime(request.form['period_end'],   '%Y-%m-%d').date()
+        evl.observations = request.form.get('observations', '').strip()
+        evl.commitments  = request.form.get('commitments', '').strip()
+        evl.is_finalized = request.form.get('finalize') == '1'
 
         for score in evl.scores:
             answer       = request.form.get(f'kpi_{score.kpi_item_id}', 'NO')
@@ -291,7 +296,7 @@ def edit_evaluation(eval_id):
             score.score  = score.kpi_item.max_points if answer == 'SI' else 0
 
         db.session.commit()
-        flash('Evaluación actualizada correctamente.', 'success')
+        flash('Evaluacion actualizada correctamente.', 'success')
         return redirect(url_for('view_evaluation', eval_id=eval_id))
 
     cats = (KPICategory.query.filter_by(active=True)
@@ -299,14 +304,29 @@ def edit_evaluation(eval_id):
     return render_template('editar_evaluacion.html', ev=ev, evl=evl, cats=cats)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# CARTA / IMPRESIÓN
-# ══════════════════════════════════════════════════════════════════════════════
+@app.route('/evaluacion/<int:eval_id>/eliminar', methods=['POST'])
+def delete_evaluation(eval_id):
+    redir = require_login()
+    if redir:
+        return redir
+    admin_key = request.form.get('admin_key', '')
+    if not check_admin(admin_key):
+        return jsonify({'error': 'Clave incorrecta'}), 403
+    evl = Evaluation.query.get_or_404(eval_id)
+    db.session.delete(evl)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+# =============================================================================
+# CARTA
+# =============================================================================
 
 @app.route('/evaluacion/<int:eval_id>/carta')
 def carta(eval_id):
     redir = require_login()
-    if redir: return redir
+    if redir:
+        return redir
     evl  = Evaluation.query.get_or_404(eval_id)
     cats = (KPICategory.query.filter_by(active=True)
             .order_by(KPICategory.order).all())
@@ -314,27 +334,32 @@ def carta(eval_id):
                            today=today_santiago())
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # HISTORIAL
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 
 @app.route('/historial')
 def history():
     redir = require_login()
-    if redir: return redir
+    if redir:
+        return redir
     ev = current_evaluator()
 
-    collab_id  = request.args.get('collaborator_id', type=int)
-    date_from  = request.args.get('date_from', '')
-    date_to    = request.args.get('date_to', '')
+    collab_id = request.args.get('collaborator_id', type=int)
+    date_from = request.args.get('date_from', '')
+    date_to   = request.args.get('date_to', '')
 
     query = Evaluation.query.filter_by(evaluator_id=ev.id)
     if collab_id:
         query = query.filter_by(collaborator_id=collab_id)
     if date_from:
-        query = query.filter(Evaluation.period_start >= datetime.strptime(date_from, '%Y-%m-%d').date())
+        query = query.filter(
+            Evaluation.period_start >= datetime.strptime(date_from, '%Y-%m-%d').date()
+        )
     if date_to:
-        query = query.filter(Evaluation.period_end   <= datetime.strptime(date_to,   '%Y-%m-%d').date())
+        query = query.filter(
+            Evaluation.period_end <= datetime.strptime(date_to, '%Y-%m-%d').date()
+        )
 
     evals = query.order_by(Evaluation.created_at.desc()).all()
     collaborators = Collaborator.query.filter_by(active=True).order_by(Collaborator.name).all()
@@ -344,15 +369,16 @@ def history():
                            collab_id=collab_id, date_from=date_from, date_to=date_to)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PANEL ADMINISTRACIÓN
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
+# PANEL ADMINISTRACION
+# =============================================================================
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     redir = require_login()
-    if redir: return redir
-    ev = current_evaluator()
+    if redir:
+        return redir
+    ev    = current_evaluator()
     error = None
     authenticated = session.get('admin_auth', False)
 
@@ -369,14 +395,14 @@ def admin():
 
     collaborators = Collaborator.query.order_by(Collaborator.name).all()
     evaluators    = Evaluator.query.order_by(Evaluator.name).all()
-    categories    = (KPICategory.query.order_by(KPICategory.order).all())
+    categories    = KPICategory.query.order_by(KPICategory.order).all()
     return render_template('admin.html', ev=ev,
                            collaborators=collaborators,
                            evaluators=evaluators,
                            categories=categories)
 
 
-# ── Admin: Colaboradores ──────────────────────────────────────────────────────
+# --- Admin: Colaboradores -----------------------------------------------------
 @app.route('/admin/colaborador/nuevo', methods=['POST'])
 def admin_add_collaborator():
     if not session.get('admin_auth'):
@@ -386,7 +412,7 @@ def admin_add_collaborator():
     if not name:
         return jsonify({'error': 'Nombre requerido'}), 400
     if Collaborator.query.filter_by(name=name).first():
-        return jsonify({'error': 'Ya existe'}), 400
+        return jsonify({'error': 'Ya existe un colaborador con ese nombre'}), 400
     c = Collaborator(name=name, cargo=cargo)
     db.session.add(c)
     db.session.commit()
@@ -397,16 +423,19 @@ def admin_add_collaborator():
 def admin_edit_collaborator(cid):
     if not session.get('admin_auth'):
         return jsonify({'error': 'No autorizado'}), 403
-    c = Collaborator.query.get_or_404(cid)
+    c    = Collaborator.query.get_or_404(cid)
     data = request.json
-    if 'name'   in data: c.name   = data['name'].strip().upper()
-    if 'cargo'  in data: c.cargo  = data['cargo'].strip()
-    if 'active' in data: c.active = data['active']
+    if 'name'   in data:
+        c.name   = data['name'].strip().upper()
+    if 'cargo'  in data:
+        c.cargo  = data['cargo'].strip()
+    if 'active' in data:
+        c.active = data['active']
     db.session.commit()
     return jsonify(c.to_dict())
 
 
-# ── Admin: Evaluadores ────────────────────────────────────────────────────────
+# --- Admin: Evaluadores -------------------------------------------------------
 @app.route('/admin/evaluador/nuevo', methods=['POST'])
 def admin_add_evaluator():
     if not session.get('admin_auth'):
@@ -415,9 +444,9 @@ def admin_add_evaluator():
     name = data.get('name', '').strip().upper()
     pw   = data.get('password', '').strip()
     if not name or not pw:
-        return jsonify({'error': 'Nombre y contraseña requeridos'}), 400
+        return jsonify({'error': 'Nombre y contrasena requeridos'}), 400
     if Evaluator.query.filter_by(name=name).first():
-        return jsonify({'error': 'Ya existe'}), 400
+        return jsonify({'error': 'Ya existe un administrador con ese nombre'}), 400
     ev = Evaluator(name=name)
     ev.set_password(pw)
     db.session.add(ev)
@@ -431,14 +460,17 @@ def admin_edit_evaluator(eid):
         return jsonify({'error': 'No autorizado'}), 403
     ev   = Evaluator.query.get_or_404(eid)
     data = request.json
-    if 'name'     in data: ev.name   = data['name'].strip().upper()
-    if 'password' in data and data['password']: ev.set_password(data['password'])
-    if 'active'   in data: ev.active = data['active']
+    if 'name' in data:
+        ev.name = data['name'].strip().upper()
+    if 'password' in data and data['password']:
+        ev.set_password(data['password'])
+    if 'active' in data:
+        ev.active = data['active']
     db.session.commit()
     return jsonify(ev.to_dict())
 
 
-# ── Admin: Categorías KPI ─────────────────────────────────────────────────────
+# --- Admin: Categorias KPI ----------------------------------------------------
 @app.route('/admin/categoria/nueva', methods=['POST'])
 def admin_add_category():
     if not session.get('admin_auth'):
@@ -460,25 +492,29 @@ def admin_edit_category(cid):
         return jsonify({'error': 'No autorizado'}), 403
     cat  = KPICategory.query.get_or_404(cid)
     data = request.json
-    if 'name'   in data: cat.name   = data['name'].strip()
-    if 'active' in data: cat.active = data['active']
+    if 'name'   in data:
+        cat.name   = data['name'].strip()
+    if 'active' in data:
+        cat.active = data['active']
     db.session.commit()
     return jsonify(cat.to_dict())
 
 
-# ── Admin: Ítems KPI ──────────────────────────────────────────────────────────
+# --- Admin: Items KPI ---------------------------------------------------------
 @app.route('/admin/kpi/nuevo', methods=['POST'])
 def admin_add_kpi():
     if not session.get('admin_auth'):
         return jsonify({'error': 'No autorizado'}), 403
-    data        = request.json
-    cat_id      = data.get('category_id')
-    name        = data.get('name', '').strip()
-    max_points  = data.get('max_points', 10)
+    data       = request.json
+    cat_id     = data.get('category_id')
+    name       = data.get('name', '').strip()
+    max_points = data.get('max_points', 10)
     if not name or not cat_id:
         return jsonify({'error': 'Datos incompletos'}), 400
-    max_order = db.session.query(db.func.max(KPIItem.order)).filter_by(category_id=cat_id).scalar() or 0
-    item = KPIItem(category_id=cat_id, name=name, max_points=int(max_points), order=max_order + 1)
+    max_order = (db.session.query(db.func.max(KPIItem.order))
+                 .filter_by(category_id=cat_id).scalar() or 0)
+    item = KPIItem(category_id=cat_id, name=name,
+                   max_points=int(max_points), order=max_order + 1)
     db.session.add(item)
     db.session.commit()
     return jsonify(item.to_dict())
@@ -490,14 +526,17 @@ def admin_edit_kpi(kid):
         return jsonify({'error': 'No autorizado'}), 403
     item = KPIItem.query.get_or_404(kid)
     data = request.json
-    if 'name'       in data: item.name       = data['name'].strip()
-    if 'max_points' in data: item.max_points = int(data['max_points'])
-    if 'active'     in data: item.active     = data['active']
+    if 'name'       in data:
+        item.name       = data['name'].strip()
+    if 'max_points' in data:
+        item.max_points = int(data['max_points'])
+    if 'active'     in data:
+        item.active     = data['active']
     db.session.commit()
     return jsonify(item.to_dict())
 
 
-# ── Admin: Cambiar clave ──────────────────────────────────────────────────────
+# --- Admin: Cambiar clave -----------------------------------------------------
 @app.route('/admin/cambiar-clave', methods=['POST'])
 def admin_change_key():
     if not session.get('admin_auth'):
@@ -515,9 +554,9 @@ def admin_logout():
     return redirect(url_for('dashboard'))
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # MAIN
-# ══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 
 with app.app_context():
     db.create_all()
