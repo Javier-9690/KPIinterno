@@ -11,185 +11,357 @@
   </a>
 </div>
 
-<div class="row g-4">
+<!-- Pestañas -->
+<ul class="nav nav-tabs mb-4" id="adminTabs">
+  <li class="nav-item">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabAdmins">
+      <i class="bi bi-person-badge me-1"></i> Administradores
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabColabs">
+      <i class="bi bi-people me-1"></i> Colaboradores
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabKpis">
+      <i class="bi bi-diagram-3 me-1"></i> KPIs
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSecurity">
+      <i class="bi bi-shield-lock me-1"></i> Seguridad
+    </button>
+  </li>
+</ul>
 
-  <!-- COLUMNA 1: Colaboradores -->
-  <div class="col-lg-4">
-    <div class="kpi-card h-100">
-      <div class="kpi-card-header d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-people me-1"></i> Colaboradores</span>
-        <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;font-size:.75rem;"
-                onclick="showAddCollab()">+ Agregar</button>
-      </div>
+<div class="tab-content">
+
+  <!-- ════════════════════════════════════════════════════════
+       PESTAÑA 1: ADMINISTRADORES
+  ════════════════════════════════════════════════════════ -->
+  <div class="tab-pane fade show active" id="tabAdmins">
+
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <p class="text-muted mb-0" style="font-size:.87rem;">
+        Los administradores pueden iniciar sesión y crear evaluaciones.
+      </p>
+      <button class="btn btn-sm text-white" style="background:var(--app-red);"
+              onclick="showAddEvalForm()">
+        <i class="bi bi-plus-circle me-1"></i> Nuevo administrador
+      </button>
+    </div>
+
+    <!-- Formulario nuevo evaluador -->
+    <div id="addEvalFormWrap" style="display:none;" class="kpi-card mb-4">
+      <div class="kpi-card-header"><i class="bi bi-person-plus me-1"></i> Nuevo administrador</div>
       <div class="kpi-card-body">
-
-        <!-- Formulario nuevo colaborador -->
-        <div id="addCollabForm" style="display:none;" class="mb-3 p-2 bg-light rounded">
-          <input type="text" id="newCollabName" class="form-control form-control-sm mb-2" placeholder="Nombre (mayúsculas)">
-          <input type="text" id="newCollabCargo" class="form-control form-control-sm mb-2" placeholder="Cargo">
-          <div class="d-flex gap-1">
-            <button class="btn btn-sm text-white flex-fill" style="background:var(--app-red);" onclick="addCollab()">Guardar</button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('addCollabForm').style.display='none'">✕</button>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Nombre completo</label>
+            <input type="text" id="newEvalName" class="form-control form-control-sm"
+                   placeholder="Ej: JUAN PÉREZ">
           </div>
-          <div class="text-danger mt-1" id="collabErr" style="font-size:.75rem;"></div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Contraseña</label>
+            <input type="password" id="newEvalPw" class="form-control form-control-sm"
+                   placeholder="Mínimo 6 caracteres">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Confirmar contraseña</label>
+            <input type="password" id="newEvalPw2" class="form-control form-control-sm"
+                   placeholder="Repetir contraseña">
+          </div>
         </div>
-
-        <div id="collabList">
-          {% for c in collaborators %}
-          <div class="admin-item" id="collabItem_{{ c.id }}">
-            <div class="admin-item-name">
-              <div style="font-weight:600;font-size:.85rem;">{{ c.name }}</div>
-              <div class="text-muted" style="font-size:.73rem;">{{ c.cargo or '—' }}</div>
-            </div>
-            {% if not c.active %}
-              <span class="admin-badge-inactive">Inactivo</span>
-            {% endif %}
-            <button class="btn btn-sm btn-outline-secondary" style="font-size:.7rem;padding:.2rem .4rem;"
-                    onclick="editCollab({{ c.id }}, '{{ c.name }}', '{{ c.cargo }}', {{ c.active | lower }})">
-              <i class="bi bi-pencil"></i>
-            </button>
-          </div>
-          {% endfor %}
+        <div class="text-danger mt-2" id="addEvalErr" style="font-size:.8rem;"></div>
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn btn-sm text-white px-4" style="background:var(--app-red);" onclick="addEval()">
+            <i class="bi bi-check2 me-1"></i> Crear administrador
+          </button>
+          <button class="btn btn-sm btn-outline-secondary"
+                  onclick="document.getElementById('addEvalFormWrap').style.display='none'">
+            Cancelar
+          </button>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- COLUMNA 2: Evaluadores -->
-  <div class="col-lg-4">
-    <div class="kpi-card h-100">
-      <div class="kpi-card-header d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-person-badge me-1"></i> Evaluadores</span>
-        <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;font-size:.75rem;"
-                onclick="showAddEval()">+ Agregar</button>
+    <!-- Lista de evaluadores -->
+    <div class="kpi-card">
+      <div class="kpi-card-body p-0">
+        <table class="table table-hover mb-0 eval-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="evalTableBody">
+            {% for e in evaluators %}
+            <tr id="evalRow_{{ e.id }}">
+              <td>
+                <div class="fw-bold" style="font-size:.88rem;" id="evalName_{{ e.id }}">{{ e.name }}</div>
+                <div class="text-muted" style="font-size:.73rem;">Administrador evaluador</div>
+              </td>
+              <td class="text-center">
+                {% if e.active %}
+                  <span class="badge bg-success" id="evalBadge_{{ e.id }}">Activo</span>
+                {% else %}
+                  <span class="badge bg-secondary" id="evalBadge_{{ e.id }}">Inactivo</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-secondary me-1" title="Editar nombre y contraseña"
+                        onclick="openEditEval({{ e.id }}, '{{ e.name }}', {{ e.active | lower }})">
+                  <i class="bi bi-pencil"></i> Editar
+                </button>
+                <button class="btn btn-sm {% if e.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                        id="evalToggleBtn_{{ e.id }}"
+                        title="{% if e.active %}Desactivar{% else %}Activar{% endif %}"
+                        onclick="toggleEval({{ e.id }}, {{ e.active | lower }})">
+                  {% if e.active %}
+                    <i class="bi bi-pause-circle"></i> Desactivar
+                  {% else %}
+                    <i class="bi bi-play-circle"></i> Activar
+                  {% endif %}
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
+    </div>
+  </div><!-- /tabAdmins -->
+
+
+  <!-- ════════════════════════════════════════════════════════
+       PESTAÑA 2: COLABORADORES
+  ════════════════════════════════════════════════════════ -->
+  <div class="tab-pane fade" id="tabColabs">
+
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <p class="text-muted mb-0" style="font-size:.87rem;">
+        Personas que serán evaluadas.
+      </p>
+      <button class="btn btn-sm text-white" style="background:var(--app-red);"
+              onclick="showAddCollabForm()">
+        <i class="bi bi-plus-circle me-1"></i> Nuevo colaborador
+      </button>
+    </div>
+
+    <!-- Formulario nuevo colaborador -->
+    <div id="addCollabFormWrap" style="display:none;" class="kpi-card mb-4">
+      <div class="kpi-card-header"><i class="bi bi-person-plus me-1"></i> Nuevo colaborador</div>
       <div class="kpi-card-body">
-
-        <div id="addEvalForm" style="display:none;" class="mb-3 p-2 bg-light rounded">
-          <input type="text" id="newEvalName" class="form-control form-control-sm mb-2" placeholder="Nombre evaluador">
-          <input type="password" id="newEvalPw" class="form-control form-control-sm mb-2" placeholder="Contraseña">
-          <div class="d-flex gap-1">
-            <button class="btn btn-sm text-white flex-fill" style="background:var(--app-red);" onclick="addEval()">Guardar</button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('addEvalForm').style.display='none'">✕</button>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Nombre completo</label>
+            <input type="text" id="newCollabName" class="form-control form-control-sm"
+                   placeholder="Ej: NOMBRE APELLIDO">
           </div>
-          <div class="text-danger mt-1" id="evalErr" style="font-size:.75rem;"></div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Cargo</label>
+            <input type="text" id="newCollabCargo" class="form-control form-control-sm"
+                   placeholder="Ej: Recepcionista">
+          </div>
         </div>
-
-        <div id="evalList">
-          {% for e in evaluators %}
-          <div class="admin-item" id="evalItem_{{ e.id }}">
-            <div class="admin-item-name">
-              <div style="font-weight:600;font-size:.85rem;">{{ e.name }}</div>
-            </div>
-            {% if not e.active %}
-              <span class="admin-badge-inactive">Inactivo</span>
-            {% endif %}
-            <button class="btn btn-sm btn-outline-secondary" style="font-size:.7rem;padding:.2rem .4rem;"
-                    onclick="editEval({{ e.id }}, '{{ e.name }}', {{ e.active | lower }})">
-              <i class="bi bi-pencil"></i>
-            </button>
-          </div>
-          {% endfor %}
+        <div class="text-danger mt-2" id="addCollabErr" style="font-size:.8rem;"></div>
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn btn-sm text-white px-4" style="background:var(--app-red);" onclick="addCollab()">
+            <i class="bi bi-check2 me-1"></i> Crear colaborador
+          </button>
+          <button class="btn btn-sm btn-outline-secondary"
+                  onclick="document.getElementById('addCollabFormWrap').style.display='none'">
+            Cancelar
+          </button>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- COLUMNA 3: KPIs -->
-  <div class="col-lg-4">
-    <div class="kpi-card h-100">
-      <div class="kpi-card-header d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-diagram-3 me-1"></i> Categorías y KPIs</span>
-        <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;font-size:.75rem;"
-                onclick="showAddCat()">+ Categoría</button>
-      </div>
-      <div class="kpi-card-body">
-
-        <div id="addCatForm" style="display:none;" class="mb-3 p-2 bg-light rounded">
-          <input type="text" id="newCatName" class="form-control form-control-sm mb-2" placeholder="Nombre categoría">
-          <div class="d-flex gap-1">
-            <button class="btn btn-sm text-white flex-fill" style="background:var(--app-red);" onclick="addCat()">Guardar</button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('addCatForm').style.display='none'">✕</button>
-          </div>
-        </div>
-
-        {% for cat in categories %}
-        <div class="mb-3" id="catBlock_{{ cat.id }}">
-          <div class="d-flex align-items-center gap-1 mb-1">
-            <span style="font-weight:700;font-size:.82rem;color:var(--app-red-dark);flex:1;">
-              {{ cat.name }}
-            </span>
-            <button class="btn btn-sm" style="font-size:.65rem;padding:.15rem .35rem;border:1px solid #ddd;"
-                    onclick="toggleCat({{ cat.id }}, {{ cat.active | lower }})">
-              {{ 'Desact.' if cat.active else 'Activar' }}
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" style="font-size:.65rem;padding:.15rem .35rem;"
-                    onclick="showAddKpi({{ cat.id }})">+ KPI</button>
-          </div>
-
-          <div id="addKpiForm_{{ cat.id }}" style="display:none;" class="mb-2 p-2 bg-light rounded">
-            <input type="text" id="newKpiName_{{ cat.id }}" class="form-control form-control-sm mb-1" placeholder="Nombre KPI">
-            <input type="number" id="newKpiPts_{{ cat.id }}" class="form-control form-control-sm mb-1" placeholder="Puntos" min="1" max="100">
-            <div class="d-flex gap-1">
-              <button class="btn btn-sm text-white flex-fill" style="background:var(--app-red);font-size:.75rem;" onclick="addKpi({{ cat.id }})">Agregar</button>
-              <button class="btn btn-sm btn-outline-secondary" style="font-size:.75rem;" onclick="document.getElementById('addKpiForm_{{ cat.id }}').style.display='none'">✕</button>
-            </div>
-          </div>
-
-          {% for item in cat.items %}
-          <div class="d-flex align-items-center gap-1 ps-2 py-1" style="border-left:3px solid var(--app-border);" id="kpiRow_{{ item.id }}">
-            <span style="flex:1;font-size:.8rem;" id="kpiName_{{ item.id }}">{{ item.name }}</span>
-            <span class="kpi-row-pts" id="kpiPts_{{ item.id }}">{{ item.max_points }}p</span>
-            {% if not item.active %}<span style="font-size:.65rem;color:#ccc;">inact.</span>{% endif %}
-            <button class="btn btn-sm" style="font-size:.65rem;padding:.1rem .3rem;border:1px solid #ddd;"
-                    onclick="editKpi({{ item.id }}, '{{ item.name | replace("'", "\\'") }}', {{ item.max_points }}, {{ item.active | lower }})">
-              <i class="bi bi-pencil"></i>
-            </button>
-          </div>
-          {% endfor %}
-        </div>
-        {% endfor %}
+    <!-- Lista colaboradores -->
+    <div class="kpi-card">
+      <div class="kpi-card-body p-0">
+        <table class="table table-hover mb-0 eval-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Cargo</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="collabTableBody">
+            {% for c in collaborators %}
+            <tr id="collabRow_{{ c.id }}">
+              <td class="fw-bold" style="font-size:.88rem;" id="collabName_{{ c.id }}">{{ c.name }}</td>
+              <td class="text-muted" style="font-size:.82rem;" id="collabCargo_{{ c.id }}">{{ c.cargo or '—' }}</td>
+              <td class="text-center">
+                {% if c.active %}
+                  <span class="badge bg-success" id="collabBadge_{{ c.id }}">Activo</span>
+                {% else %}
+                  <span class="badge bg-secondary" id="collabBadge_{{ c.id }}">Inactivo</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-secondary me-1"
+                        onclick="openEditCollab({{ c.id }}, '{{ c.name }}', '{{ c.cargo }}', {{ c.active | lower }})">
+                  <i class="bi bi-pencil"></i> Editar
+                </button>
+                <button class="btn btn-sm {% if c.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                        id="collabToggleBtn_{{ c.id }}"
+                        onclick="toggleCollab({{ c.id }}, {{ c.active | lower }})">
+                  {% if c.active %}
+                    <i class="bi bi-pause-circle"></i> Desactivar
+                  {% else %}
+                    <i class="bi bi-play-circle"></i> Activar
+                  {% endif %}
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
+  </div><!-- /tabColabs -->
 
-</div>
 
-<!-- Cambiar clave admin -->
-<div class="kpi-card mt-4">
-  <div class="kpi-card-header"><i class="bi bi-key me-1"></i> Seguridad</div>
-  <div class="kpi-card-body">
-    <div class="row g-3 align-items-end">
-      <div class="col-md-4">
-        <label class="form-label fw-semibold" style="font-size:.82rem;">Nueva clave administrativa</label>
-        <input type="password" id="newAdminKey" class="form-control form-control-sm" placeholder="Mínimo 6 caracteres">
+  <!-- ════════════════════════════════════════════════════════
+       PESTAÑA 3: KPIs
+  ════════════════════════════════════════════════════════ -->
+  <div class="tab-pane fade" id="tabKpis">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <p class="text-muted mb-0" style="font-size:.87rem;">
+        Categorías e ítems que se evalúan en cada turno.
+      </p>
+      <button class="btn btn-sm text-white" style="background:var(--app-red);" onclick="showAddCat()">
+        <i class="bi bi-plus-circle me-1"></i> Nueva categoría
+      </button>
+    </div>
+
+    <div id="addCatForm" style="display:none;" class="kpi-card mb-4">
+      <div class="kpi-card-header"><i class="bi bi-plus me-1"></i> Nueva categoría</div>
+      <div class="kpi-card-body d-flex gap-2">
+        <input type="text" id="newCatName" class="form-control form-control-sm"
+               placeholder="Nombre de la categoría">
+        <button class="btn btn-sm text-white px-3" style="background:var(--app-red);" onclick="addCat()">Crear</button>
+        <button class="btn btn-sm btn-outline-secondary"
+                onclick="document.getElementById('addCatForm').style.display='none'">✕</button>
       </div>
-      <div class="col-md-3">
-        <label class="form-label fw-semibold" style="font-size:.82rem;">Confirmar clave</label>
-        <input type="password" id="confirmAdminKey" class="form-control form-control-sm">
-      </div>
-      <div class="col-md-2">
-        <button class="btn btn-sm text-white w-100" style="background:var(--app-red);" onclick="changeAdminKey()">
-          <i class="bi bi-shield-check me-1"></i> Cambiar clave
+    </div>
+
+    {% for cat in categories %}
+    <div class="kpi-card mb-3" id="catBlock_{{ cat.id }}">
+      <div class="kpi-card-header d-flex align-items-center gap-2">
+        <span class="flex-fill">
+          <i class="bi bi-diagram-3 me-1"></i>
+          <span id="catName_{{ cat.id }}">{{ cat.name }}</span>
+        </span>
+        {% if not cat.active %}<span style="background:rgba(255,255,255,.25);font-size:.7rem;padding:.15rem .5rem;border-radius:999px;">Inactiva</span>{% endif %}
+        <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;font-size:.72rem;"
+                onclick="openEditCat({{ cat.id }}, '{{ cat.name | replace("'","\\'"  ) }}', {{ cat.active | lower }})">
+          <i class="bi bi-pencil"></i> Editar
+        </button>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;font-size:.72rem;"
+                onclick="showAddKpi({{ cat.id }})">
+          <i class="bi bi-plus"></i> KPI
         </button>
       </div>
-    </div>
-    <div id="keyMsg" class="mt-2" style="font-size:.8rem;"></div>
-  </div>
-</div>
+      <div class="kpi-card-body p-0">
 
-<!-- Modal edición universal -->
+        <!-- Formulario nuevo KPI -->
+        <div id="addKpiForm_{{ cat.id }}" style="display:none;" class="p-3 bg-light border-bottom">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-7">
+              <label style="font-size:.78rem;" class="form-label mb-1">Nombre del KPI</label>
+              <input type="text" id="newKpiName_{{ cat.id }}" class="form-control form-control-sm"
+                     placeholder="Ej: Puntualidad de ingreso">
+            </div>
+            <div class="col-md-2">
+              <label style="font-size:.78rem;" class="form-label mb-1">Puntos</label>
+              <input type="number" id="newKpiPts_{{ cat.id }}" class="form-control form-control-sm"
+                     placeholder="20" min="1" max="100">
+            </div>
+            <div class="col-md-3 d-flex gap-1">
+              <button class="btn btn-sm text-white flex-fill" style="background:var(--app-red);"
+                      onclick="addKpi({{ cat.id }})">Agregar</button>
+              <button class="btn btn-sm btn-outline-secondary"
+                      onclick="document.getElementById('addKpiForm_{{ cat.id }}').style.display='none'">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de ítems -->
+        {% for item in cat.items %}
+        <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom" id="kpiRow_{{ item.id }}"
+             style="{% if not item.active %}opacity:.5;{% endif %}">
+          <span class="flex-fill" style="font-size:.85rem;" id="kpiName_{{ item.id }}">{{ item.name }}</span>
+          <span class="fw-bold me-2" style="color:var(--app-red);font-size:.82rem;" id="kpiPts_{{ item.id }}">
+            {{ item.max_points }} pts
+          </span>
+          {% if not item.active %}
+            <span class="badge bg-secondary me-1" style="font-size:.65rem;">Inactivo</span>
+          {% endif %}
+          <button class="btn btn-sm btn-outline-secondary"
+                  onclick="openEditKpi({{ item.id }}, '{{ item.name | replace("'", "\\'") }}', {{ item.max_points }}, {{ item.active | lower }})">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </div>
+        {% endfor %}
+        {% if not cat.items %}
+        <div class="text-center py-3 text-muted" style="font-size:.82rem;">Sin ítems aún.</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div><!-- /tabKpis -->
+
+
+  <!-- ════════════════════════════════════════════════════════
+       PESTAÑA 4: SEGURIDAD
+  ════════════════════════════════════════════════════════ -->
+  <div class="tab-pane fade" id="tabSecurity">
+    <div class="kpi-card" style="max-width:500px;">
+      <div class="kpi-card-header"><i class="bi bi-key me-1"></i> Cambiar clave administrativa</div>
+      <div class="kpi-card-body">
+        <p class="text-muted mb-3" style="font-size:.85rem;">
+          Esta clave protege todas las acciones administrativas: editar evaluaciones, gestionar KPIs, crear administradores, etc.
+        </p>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:.82rem;">Nueva clave</label>
+          <input type="password" id="newAdminKey" class="form-control" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:.82rem;">Confirmar nueva clave</label>
+          <input type="password" id="confirmAdminKey" class="form-control" placeholder="Repetir clave">
+        </div>
+        <button class="btn text-white" style="background:var(--app-red);" onclick="changeAdminKey()">
+          <i class="bi bi-shield-check me-1"></i> Cambiar clave
+        </button>
+        <div id="keyMsg" class="mt-2" style="font-size:.85rem;"></div>
+      </div>
+    </div>
+  </div><!-- /tabSecurity -->
+
+</div><!-- /tab-content -->
+
+
+<!-- ════ MODAL UNIVERSAL ════ -->
 <div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
+  <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header" style="background:var(--app-red);color:#fff;padding:.7rem 1rem;">
+      <div class="modal-header" style="background:var(--app-red);color:#fff;padding:.7rem 1.2rem;">
         <h6 class="modal-title mb-0" id="editModalTitle">Editar</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="editModalBody"></div>
       <div class="modal-footer py-2">
         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-sm text-white" style="background:var(--app-red);" id="editModalSave">Guardar</button>
+        <button type="button" class="btn btn-sm text-white" style="background:var(--app-red);" id="editModalSave">
+          <i class="bi bi-check2 me-1"></i> Guardar cambios
+        </button>
       </div>
     </div>
   </div>
@@ -201,175 +373,369 @@
 <script>
 const modal = new bootstrap.Modal(document.getElementById('editModal'));
 
-// ── Helpers ──
 async function apiCall(url, method, body) {
   const r = await fetch(url, {
-    method, headers: {'Content-Type':'application/json'},
+    method,
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
   const data = await r.json();
-  if (!r.ok) throw data.error || 'Error';
+  if (!r.ok) throw data.error || 'Error desconocido';
   return data;
 }
 
-// ── Colaboradores ──
-function showAddCollab() { document.getElementById('addCollabForm').style.display='block'; }
-
-async function addCollab() {
-  try {
-    const name  = document.getElementById('newCollabName').value;
-    const cargo = document.getElementById('newCollabCargo').value;
-    const c = await apiCall('/admin/colaborador/nuevo', 'POST', {name, cargo});
-    document.getElementById('collabList').insertAdjacentHTML('beforeend',
-      `<div class="admin-item" id="collabItem_${c.id}">
-         <div class="admin-item-name"><div style="font-weight:600;font-size:.85rem;">${c.name}</div>
-         <div class="text-muted" style="font-size:.73rem;">${c.cargo||'—'}</div></div>
-         <button class="btn btn-sm btn-outline-secondary" style="font-size:.7rem;padding:.2rem .4rem;"
-                 onclick="editCollab(${c.id},'${c.name}','${c.cargo}',${c.active})"><i class="bi bi-pencil"></i></button>
-       </div>`);
-    document.getElementById('addCollabForm').style.display='none';
-    document.getElementById('newCollabName').value='';
-    document.getElementById('newCollabCargo').value='';
-    document.getElementById('collabErr').textContent='';
-  } catch(e) { document.getElementById('collabErr').textContent = e; }
+function showSuccess(msg) {
+  const t = document.createElement('div');
+  t.className = 'alert alert-success alert-dismissible fade show';
+  t.style = 'position:fixed;top:70px;right:20px;z-index:9999;min-width:280px;';
+  t.innerHTML = `<i class="bi bi-check-circle me-1"></i>${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
 }
 
-function editCollab(id, name, cargo, active) {
-  document.getElementById('editModalTitle').textContent = 'Editar colaborador';
+// ══════════════════════════════════════
+// ADMINISTRADORES (EVALUADORES)
+// ══════════════════════════════════════
+
+function showAddEvalForm() {
+  const wrap = document.getElementById('addEvalFormWrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  if (wrap.style.display === 'block') document.getElementById('newEvalName').focus();
+}
+
+async function addEval() {
+  const name = document.getElementById('newEvalName').value.trim();
+  const pw   = document.getElementById('newEvalPw').value;
+  const pw2  = document.getElementById('newEvalPw2').value;
+  const errEl = document.getElementById('addEvalErr');
+
+  if (!name)       { errEl.textContent = 'El nombre es requerido.'; return; }
+  if (!pw)         { errEl.textContent = 'La contraseña es requerida.'; return; }
+  if (pw.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+  if (pw !== pw2)  { errEl.textContent = 'Las contraseñas no coinciden.'; return; }
+  errEl.textContent = '';
+
+  try {
+    const e = await apiCall('/admin/evaluador/nuevo', 'POST', { name, password: pw });
+    // Agregar fila a la tabla
+    document.getElementById('evalTableBody').insertAdjacentHTML('beforeend', `
+      <tr id="evalRow_${e.id}">
+        <td>
+          <div class="fw-bold" style="font-size:.88rem;" id="evalName_${e.id}">${e.name}</div>
+          <div class="text-muted" style="font-size:.73rem;">Administrador evaluador</div>
+        </td>
+        <td class="text-center">
+          <span class="badge bg-success" id="evalBadge_${e.id}">Activo</span>
+        </td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-secondary me-1"
+                  onclick="openEditEval(${e.id}, '${e.name}', true)">
+            <i class="bi bi-pencil"></i> Editar
+          </button>
+          <button class="btn btn-sm btn-outline-warning" id="evalToggleBtn_${e.id}"
+                  onclick="toggleEval(${e.id}, true)">
+            <i class="bi bi-pause-circle"></i> Desactivar
+          </button>
+        </td>
+      </tr>`);
+    // Limpiar formulario
+    document.getElementById('newEvalName').value = '';
+    document.getElementById('newEvalPw').value   = '';
+    document.getElementById('newEvalPw2').value  = '';
+    document.getElementById('addEvalFormWrap').style.display = 'none';
+    showSuccess(`Administrador "${e.name}" creado correctamente.`);
+  } catch(err) {
+    errEl.textContent = err;
+  }
+}
+
+function openEditEval(id, name, active) {
+  document.getElementById('editModalTitle').innerHTML =
+    '<i class="bi bi-person-badge me-1"></i> Editar administrador';
   document.getElementById('editModalBody').innerHTML = `
-    <div class="mb-2"><label class="form-label" style="font-size:.82rem;">Nombre</label>
-    <input type="text" id="em_name" class="form-control form-control-sm" value="${name}"></div>
-    <div class="mb-2"><label class="form-label" style="font-size:.82rem;">Cargo</label>
-    <input type="text" id="em_cargo" class="form-control form-control-sm" value="${cargo}"></div>
-    <div class="form-check"><input class="form-check-input" type="checkbox" id="em_active" ${active?'checked':''}>
-    <label class="form-check-label" style="font-size:.82rem;" for="em_active">Activo</label></div>
-    <div class="text-danger mt-1" id="em_err" style="font-size:.75rem;"></div>`;
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Nombre completo</label>
+      <input type="text" id="em_name" class="form-control" value="${name}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Nueva contraseña <span class="text-muted fw-normal">(dejar en blanco para no cambiar)</span></label>
+      <input type="password" id="em_pw" class="form-control" placeholder="••••••••">
+    </div>
+    <div class="mb-2">
+      <label class="form-label fw-semibold">Confirmar nueva contraseña</label>
+      <input type="password" id="em_pw2" class="form-control" placeholder="••••••••">
+    </div>
+    <div class="form-check mt-2">
+      <input class="form-check-input" type="checkbox" id="em_active" ${active ? 'checked' : ''}>
+      <label class="form-check-label" for="em_active">Cuenta activa</label>
+    </div>
+    <div class="text-danger mt-2" id="em_err" style="font-size:.82rem;"></div>`;
+
+  document.getElementById('editModalSave').onclick = async () => {
+    const pw  = document.getElementById('em_pw').value;
+    const pw2 = document.getElementById('em_pw2').value;
+    const errEl = document.getElementById('em_err');
+    if (pw && pw.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+    if (pw && pw !== pw2)    { errEl.textContent = 'Las contraseñas no coinciden.'; return; }
+    errEl.textContent = '';
+    try {
+      const payload = {
+        name:   document.getElementById('em_name').value.trim(),
+        active: document.getElementById('em_active').checked
+      };
+      if (pw) payload.password = pw;
+      const e = await apiCall(`/admin/evaluador/${id}`, 'PUT', payload);
+
+      document.getElementById(`evalName_${id}`).textContent = e.name;
+      const badge = document.getElementById(`evalBadge_${id}`);
+      badge.textContent = e.active ? 'Activo' : 'Inactivo';
+      badge.className = `badge ${e.active ? 'bg-success' : 'bg-secondary'}`;
+
+      const btn = document.getElementById(`evalToggleBtn_${id}`);
+      if (btn) {
+        btn.className = `btn btn-sm ${e.active ? 'btn-outline-warning' : 'btn-outline-success'}`;
+        btn.innerHTML = e.active
+          ? '<i class="bi bi-pause-circle"></i> Desactivar'
+          : '<i class="bi bi-play-circle"></i> Activar';
+        btn.onclick = () => toggleEval(id, e.active);
+      }
+      modal.hide();
+      showSuccess('Administrador actualizado correctamente.');
+    } catch(err) { document.getElementById('em_err').textContent = err; }
+  };
+  modal.show();
+}
+
+async function toggleEval(id, currentActive) {
+  try {
+    const e = await apiCall(`/admin/evaluador/${id}`, 'PUT', { active: !currentActive });
+    const badge = document.getElementById(`evalBadge_${id}`);
+    badge.textContent = e.active ? 'Activo' : 'Inactivo';
+    badge.className = `badge ${e.active ? 'bg-success' : 'bg-secondary'}`;
+    const btn = document.getElementById(`evalToggleBtn_${id}`);
+    btn.className = `btn btn-sm ${e.active ? 'btn-outline-warning' : 'btn-outline-success'}`;
+    btn.innerHTML = e.active
+      ? '<i class="bi bi-pause-circle"></i> Desactivar'
+      : '<i class="bi bi-play-circle"></i> Activar';
+    btn.onclick = () => toggleEval(id, e.active);
+    showSuccess(`Administrador ${e.active ? 'activado' : 'desactivado'}.`);
+  } catch(err) { alert(err); }
+}
+
+
+// ══════════════════════════════════════
+// COLABORADORES
+// ══════════════════════════════════════
+
+function showAddCollabForm() {
+  const wrap = document.getElementById('addCollabFormWrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  if (wrap.style.display === 'block') document.getElementById('newCollabName').focus();
+}
+
+async function addCollab() {
+  const name  = document.getElementById('newCollabName').value.trim();
+  const cargo = document.getElementById('newCollabCargo').value.trim();
+  const errEl = document.getElementById('addCollabErr');
+  if (!name) { errEl.textContent = 'El nombre es requerido.'; return; }
+  errEl.textContent = '';
+  try {
+    const c = await apiCall('/admin/colaborador/nuevo', 'POST', { name, cargo });
+    document.getElementById('collabTableBody').insertAdjacentHTML('beforeend', `
+      <tr id="collabRow_${c.id}">
+        <td class="fw-bold" style="font-size:.88rem;" id="collabName_${c.id}">${c.name}</td>
+        <td class="text-muted" style="font-size:.82rem;" id="collabCargo_${c.id}">${c.cargo || '—'}</td>
+        <td class="text-center"><span class="badge bg-success" id="collabBadge_${c.id}">Activo</span></td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-secondary me-1"
+                  onclick="openEditCollab(${c.id}, '${c.name}', '${c.cargo}', true)">
+            <i class="bi bi-pencil"></i> Editar
+          </button>
+          <button class="btn btn-sm btn-outline-warning" id="collabToggleBtn_${c.id}"
+                  onclick="toggleCollab(${c.id}, true)">
+            <i class="bi bi-pause-circle"></i> Desactivar
+          </button>
+        </td>
+      </tr>`);
+    document.getElementById('newCollabName').value  = '';
+    document.getElementById('newCollabCargo').value = '';
+    document.getElementById('addCollabFormWrap').style.display = 'none';
+    showSuccess(`Colaborador "${c.name}" creado correctamente.`);
+  } catch(err) { errEl.textContent = err; }
+}
+
+function openEditCollab(id, name, cargo, active) {
+  document.getElementById('editModalTitle').innerHTML =
+    '<i class="bi bi-person me-1"></i> Editar colaborador';
+  document.getElementById('editModalBody').innerHTML = `
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Nombre completo</label>
+      <input type="text" id="em_name" class="form-control" value="${name}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Cargo</label>
+      <input type="text" id="em_cargo" class="form-control" value="${cargo}">
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="em_active" ${active ? 'checked' : ''}>
+      <label class="form-check-label" for="em_active">Activo</label>
+    </div>
+    <div class="text-danger mt-2" id="em_err" style="font-size:.82rem;"></div>`;
+
   document.getElementById('editModalSave').onclick = async () => {
     try {
       const c = await apiCall(`/admin/colaborador/${id}`, 'PUT', {
-        name: document.getElementById('em_name').value,
-        cargo: document.getElementById('em_cargo').value,
+        name:   document.getElementById('em_name').value.trim(),
+        cargo:  document.getElementById('em_cargo').value.trim(),
         active: document.getElementById('em_active').checked
       });
-      const el = document.getElementById(`collabItem_${id}`);
-      el.querySelector('div > div:first-child').textContent = c.name;
-      el.querySelector('div > div:last-child').textContent = c.cargo||'—';
+      document.getElementById(`collabName_${id}`).textContent  = c.name;
+      document.getElementById(`collabCargo_${id}`).textContent = c.cargo || '—';
+      const badge = document.getElementById(`collabBadge_${id}`);
+      badge.textContent = c.active ? 'Activo' : 'Inactivo';
+      badge.className = `badge ${c.active ? 'bg-success' : 'bg-secondary'}`;
       modal.hide();
-    } catch(e) { document.getElementById('em_err').textContent = e; }
+      showSuccess('Colaborador actualizado.');
+    } catch(err) { document.getElementById('em_err').textContent = err; }
   };
   modal.show();
 }
 
-// ── Evaluadores ──
-function showAddEval() { document.getElementById('addEvalForm').style.display='block'; }
-
-async function addEval() {
+async function toggleCollab(id, currentActive) {
   try {
-    const name     = document.getElementById('newEvalName').value;
-    const password = document.getElementById('newEvalPw').value;
-    const e = await apiCall('/admin/evaluador/nuevo', 'POST', {name, password});
-    document.getElementById('evalList').insertAdjacentHTML('beforeend',
-      `<div class="admin-item" id="evalItem_${e.id}">
-         <div class="admin-item-name"><div style="font-weight:600;font-size:.85rem;">${e.name}</div></div>
-         <button class="btn btn-sm btn-outline-secondary" style="font-size:.7rem;padding:.2rem .4rem;"
-                 onclick="editEval(${e.id},'${e.name}',${e.active})"><i class="bi bi-pencil"></i></button>
-       </div>`);
-    document.getElementById('addEvalForm').style.display='none';
-    document.getElementById('newEvalName').value='';
-    document.getElementById('newEvalPw').value='';
-    document.getElementById('evalErr').textContent='';
-  } catch(e) { document.getElementById('evalErr').textContent = e; }
+    const c = await apiCall(`/admin/colaborador/${id}`, 'PUT', { active: !currentActive });
+    const badge = document.getElementById(`collabBadge_${id}`);
+    badge.textContent = c.active ? 'Activo' : 'Inactivo';
+    badge.className = `badge ${c.active ? 'bg-success' : 'bg-secondary'}`;
+    const btn = document.getElementById(`collabToggleBtn_${id}`);
+    btn.className = `btn btn-sm ${c.active ? 'btn-outline-warning' : 'btn-outline-success'}`;
+    btn.innerHTML = c.active
+      ? '<i class="bi bi-pause-circle"></i> Desactivar'
+      : '<i class="bi bi-play-circle"></i> Activar';
+    btn.onclick = () => toggleCollab(id, c.active);
+    showSuccess(`Colaborador ${c.active ? 'activado' : 'desactivado'}.`);
+  } catch(err) { alert(err); }
 }
 
-function editEval(id, name, active) {
-  document.getElementById('editModalTitle').textContent = 'Editar evaluador';
-  document.getElementById('editModalBody').innerHTML = `
-    <div class="mb-2"><label class="form-label" style="font-size:.82rem;">Nombre</label>
-    <input type="text" id="em_name" class="form-control form-control-sm" value="${name}"></div>
-    <div class="mb-2"><label class="form-label" style="font-size:.82rem;">Nueva contraseña (opcional)</label>
-    <input type="password" id="em_pw" class="form-control form-control-sm" placeholder="Dejar en blanco para no cambiar"></div>
-    <div class="form-check"><input class="form-check-input" type="checkbox" id="em_active" ${active?'checked':''}>
-    <label class="form-check-label" style="font-size:.82rem;" for="em_active">Activo</label></div>
-    <div class="text-danger mt-1" id="em_err" style="font-size:.75rem;"></div>`;
-  document.getElementById('editModalSave').onclick = async () => {
-    try {
-      const payload = {name: document.getElementById('em_name').value, active: document.getElementById('em_active').checked};
-      const pw = document.getElementById('em_pw').value;
-      if (pw) payload.password = pw;
-      const e = await apiCall(`/admin/evaluador/${id}`, 'PUT', payload);
-      document.getElementById(`evalItem_${id}`).querySelector('div > div').textContent = e.name;
-      modal.hide();
-    } catch(e) { document.getElementById('em_err').textContent = e; }
-  };
-  modal.show();
-}
 
-// ── Categorías ──
-function showAddCat() { document.getElementById('addCatForm').style.display='block'; }
+// ══════════════════════════════════════
+// CATEGORÍAS KPI
+// ══════════════════════════════════════
+
+function showAddCat() {
+  const f = document.getElementById('addCatForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
 
 async function addCat() {
   const name = document.getElementById('newCatName').value.trim();
   if (!name) return;
-  const cat = await apiCall('/admin/categoria/nueva', 'POST', {name});
+  await apiCall('/admin/categoria/nueva', 'POST', { name });
+  showSuccess(`Categoría "${name}" creada.`);
   location.reload();
 }
 
-async function toggleCat(id, active) {
-  await apiCall(`/admin/categoria/${id}`, 'PUT', {active: !active});
-  location.reload();
+function openEditCat(id, name, active) {
+  document.getElementById('editModalTitle').innerHTML =
+    '<i class="bi bi-diagram-3 me-1"></i> Editar categoría';
+  document.getElementById('editModalBody').innerHTML = `
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Nombre de la categoría</label>
+      <input type="text" id="em_name" class="form-control" value="${name}">
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="em_active" ${active ? 'checked' : ''}>
+      <label class="form-check-label" for="em_active">Categoría activa</label>
+    </div>
+    <div class="text-danger mt-2" id="em_err" style="font-size:.82rem;"></div>`;
+  document.getElementById('editModalSave').onclick = async () => {
+    try {
+      await apiCall(`/admin/categoria/${id}`, 'PUT', {
+        name:   document.getElementById('em_name').value.trim(),
+        active: document.getElementById('em_active').checked
+      });
+      document.getElementById(`catName_${id}`).textContent =
+        document.getElementById('em_name').value.trim();
+      modal.hide();
+      showSuccess('Categoría actualizada.');
+    } catch(err) { document.getElementById('em_err').textContent = err; }
+  };
+  modal.show();
 }
 
-// ── KPIs ──
+
+// ══════════════════════════════════════
+// ÍTEMS KPI
+// ══════════════════════════════════════
+
 function showAddKpi(catId) {
-  document.querySelectorAll('[id^="addKpiForm_"]').forEach(el => el.style.display='none');
-  document.getElementById(`addKpiForm_${catId}`).style.display='block';
+  document.querySelectorAll('[id^="addKpiForm_"]').forEach(el => el.style.display = 'none');
+  const f = document.getElementById(`addKpiForm_${catId}`);
+  f.style.display = 'block';
+  document.getElementById(`newKpiName_${catId}`).focus();
 }
 
 async function addKpi(catId) {
   const name       = document.getElementById(`newKpiName_${catId}`).value.trim();
   const max_points = document.getElementById(`newKpiPts_${catId}`).value;
   if (!name || !max_points) return;
-  await apiCall('/admin/kpi/nuevo', 'POST', {category_id: catId, name, max_points});
+  const item = await apiCall('/admin/kpi/nuevo', 'POST', { category_id: catId, name, max_points });
+  showSuccess(`KPI "${item.name}" agregado.`);
   location.reload();
 }
 
-function editKpi(id, name, pts, active) {
-  document.getElementById('editModalTitle').textContent = 'Editar KPI';
+function openEditKpi(id, name, pts, active) {
+  document.getElementById('editModalTitle').innerHTML =
+    '<i class="bi bi-pencil-square me-1"></i> Editar ítem KPI';
   document.getElementById('editModalBody').innerHTML = `
-    <div class="mb-2"><label class="form-label" style="font-size:.82rem;">Nombre</label>
-    <input type="text" id="em_name" class="form-control form-control-sm" value="${name}"></div>
-    <div class="mb-2"><label class="form-label" style="font-size:.82rem;">Puntos máximos</label>
-    <input type="number" id="em_pts" class="form-control form-control-sm" value="${pts}" min="1" max="100"></div>
-    <div class="form-check"><input class="form-check-input" type="checkbox" id="em_active" ${active?'checked':''}>
-    <label class="form-check-label" style="font-size:.82rem;" for="em_active">Activo</label></div>
-    <div class="text-danger mt-1" id="em_err" style="font-size:.75rem;"></div>`;
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Nombre del KPI</label>
+      <input type="text" id="em_name" class="form-control" value="${name}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Puntos máximos</label>
+      <input type="number" id="em_pts" class="form-control" value="${pts}" min="1" max="100">
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="em_active" ${active ? 'checked' : ''}>
+      <label class="form-check-label" for="em_active">Ítem activo</label>
+    </div>
+    <div class="text-danger mt-2" id="em_err" style="font-size:.82rem;"></div>`;
   document.getElementById('editModalSave').onclick = async () => {
     try {
       const item = await apiCall(`/admin/kpi/${id}`, 'PUT', {
-        name: document.getElementById('em_name').value,
+        name:       document.getElementById('em_name').value.trim(),
         max_points: parseInt(document.getElementById('em_pts').value),
-        active: document.getElementById('em_active').checked
+        active:     document.getElementById('em_active').checked
       });
       document.getElementById(`kpiName_${id}`).textContent = item.name;
-      document.getElementById(`kpiPts_${id}`).textContent = item.max_points + 'p';
+      document.getElementById(`kpiPts_${id}`).textContent  = item.max_points + ' pts';
+      const row = document.getElementById(`kpiRow_${id}`);
+      row.style.opacity = item.active ? '1' : '0.5';
       modal.hide();
-    } catch(e) { document.getElementById('em_err').textContent = e; }
+      showSuccess('KPI actualizado.');
+    } catch(err) { document.getElementById('em_err').textContent = err; }
   };
   modal.show();
 }
 
-// ── Clave admin ──
+
+// ══════════════════════════════════════
+// CLAVE ADMINISTRATIVA
+// ══════════════════════════════════════
+
 async function changeAdminKey() {
-  const nk = document.getElementById('newAdminKey').value;
-  const ck = document.getElementById('confirmAdminKey').value;
+  const nk  = document.getElementById('newAdminKey').value;
+  const ck  = document.getElementById('confirmAdminKey').value;
   const msg = document.getElementById('keyMsg');
-  if (nk !== ck) { msg.innerHTML='<span class="text-danger">Las claves no coinciden.</span>'; return; }
+  if (nk !== ck) { msg.innerHTML = '<span class="text-danger">Las claves no coinciden.</span>'; return; }
+  if (nk.length < 6) { msg.innerHTML = '<span class="text-danger">Mínimo 6 caracteres.</span>'; return; }
   try {
-    await apiCall('/admin/cambiar-clave', 'POST', {new_key: nk});
-    msg.innerHTML = '<span class="text-success">✓ Clave actualizada correctamente.</span>';
-    document.getElementById('newAdminKey').value='';
-    document.getElementById('confirmAdminKey').value='';
-  } catch(e) { msg.innerHTML = `<span class="text-danger">${e}</span>`; }
+    await apiCall('/admin/cambiar-clave', 'POST', { new_key: nk });
+    msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Clave actualizada correctamente.</span>';
+    document.getElementById('newAdminKey').value    = '';
+    document.getElementById('confirmAdminKey').value = '';
+  } catch(err) { msg.innerHTML = `<span class="text-danger">${err}</span>`; }
 }
 </script>
 {% endblock %}
