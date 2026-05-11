@@ -115,7 +115,7 @@ const catData = {};
   {% endif %}
 {% endfor %}
 
-const totalMax = {{ categories | sum(attribute='items') | list | selectattr('active') | sum(attribute='max_points') }};
+const totalMax = {{ total_max }};
 
 function setKpi(itemId, answer, pts, catId) {
   const prevAnswer = document.getElementById('val_' + itemId).value;
