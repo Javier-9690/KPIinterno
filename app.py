@@ -189,9 +189,18 @@ def new_evaluation():
     period_end   = today
     period_start = today - timedelta(days=9)
 
+    # Calcula el total de puntos posibles para usarlo en el JS del template
+    total_max = sum(
+        item.max_points
+        for cat in categories
+        for item in cat.items
+        if item.active
+    )
+
     return render_template('evaluacion.html', ev=ev,
                            collaborators=collaborators,
                            categories=categories,
+                           total_max=total_max,
                            period_start=period_start.strftime('%Y-%m-%d'),
                            period_end=period_end.strftime('%Y-%m-%d'))
 
