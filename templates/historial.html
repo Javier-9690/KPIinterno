@@ -95,9 +95,17 @@
                 <i class="bi bi-eye"></i>
               </a>
               <a href="{{ url_for('carta', eval_id=e.id) }}"
-                 class="btn btn-sm btn-outline-danger" title="Ver carta">
+                 class="btn btn-sm btn-outline-danger me-1" title="Ver carta">
                 <i class="bi bi-file-earmark-text"></i>
               </a>
+              <button class="btn btn-sm btn-outline-warning me-1" title="Editar"
+                      onclick="openEditModal({{ e.id }})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" title="Eliminar"
+                      onclick="openDeleteModal({{ e.id }}, '{{ e.collaborator.name }}', '{{ e.period_start.strftime('%d/%m/%Y') }} – {{ e.period_end.strftime('%d/%m/%Y') }}')">
+                <i class="bi bi-trash"></i>
+              </button>
             </td>
           </tr>
           {% endfor %}
@@ -112,4 +120,98 @@
     {% endif %}
   </div>
 </div>
+
+<!-- Modal Editar -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--app-red);color:#fff;padding:.7rem 1rem;">
+        <h6 class="modal-title mb-0"><i class="bi bi-pencil me-1"></i> Editar evaluación</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3" style="font-size:.85rem;">Ingresa la clave administrativa para editar.</p>
+        <input type="password" id="editKey" class="form-control" placeholder="Clave administrativa">
+        <div class="text-danger mt-2" id="editKeyErr" style="font-size:.78rem;display:none;">Clave requerida.</div>
+      </div>
+      <div class="modal-footer py-2">
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-sm text-white" style="background:var(--app-red);" onclick="goEdit()">
+          <i class="bi bi-pencil me-1"></i> Ir a editar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#b42318;color:#fff;padding:.7rem 1rem;">
+        <h6 class="modal-title mb-0"><i class="bi bi-trash me-1"></i> Eliminar evaluación</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:.85rem;" class="mb-1">Esta acción no se puede deshacer.</p>
+        <p id="deleteInfo" class="mb-3" style="font-size:.82rem;color:#555;font-weight:600;"></p>
+        <input type="password" id="deleteKey" class="form-control" placeholder="Clave administrativa">
+        <div class="text-danger mt-2" id="deleteKeyErr" style="font-size:.78rem;display:none;"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-sm text-white" style="background:#b42318;" onclick="confirmDelete()">
+          <i class="bi bi-trash me-1"></i> Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let targetEvalId = null;
+const editModal   = new bootstrap.Modal(document.getElementById('editModal'));
+const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+function openEditModal(id) {
+  targetEvalId = id;
+  document.getElementById('editKey').value = '';
+  document.getElementById('editKeyErr').style.display = 'none';
+  editModal.show();
+}
+
+function goEdit() {
+  const key = document.getElementById('editKey').value.trim();
+  if (!key) { document.getElementById('editKeyErr').style.display = 'block'; return; }
+  sessionStorage.setItem('admin_key_tmp', key);
+  window.location.href = `/evaluacion/${targetEvalId}/editar`;
+}
+
+function openDeleteModal(id, name, period) {
+  targetEvalId = id;
+  document.getElementById('deleteInfo').textContent = name + ' · ' + period;
+  document.getElementById('deleteKey').value = '';
+  document.getElementById('deleteKeyErr').style.display = 'none';
+  deleteModal.show();
+}
+
+async function confirmDelete() {
+  const key = document.getElementById('deleteKey').value.trim();
+  const errEl = document.getElementById('deleteKeyErr');
+  if (!key) { errEl.textContent = 'Ingresa la clave.'; errEl.style.display = 'block'; return; }
+
+  const formData = new FormData();
+  formData.append('admin_key', key);
+
+  const r = await fetch(`/evaluacion/${targetEvalId}/eliminar`, { method: 'POST', body: formData });
+  if (r.ok) {
+    location.reload();
+  } else {
+    errEl.textContent = 'Clave incorrecta.';
+    errEl.style.display = 'block';
+  }
+}
+</script>
 {% endblock %}

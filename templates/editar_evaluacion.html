@@ -127,13 +127,23 @@ function setKpi(itemId, answer) {
   event.target.classList.add('active');
 }
 
-async function unlockForm() {
-  const key = document.getElementById('adminKeyInput').value;
-  // Hacemos una verificación simple enviando el form vacío con la clave
-  // y chequeando la respuesta del servidor
+function unlockForm() {
+  const key = document.getElementById('adminKeyInput').value.trim();
+  if (!key) return;
   document.getElementById('adminKeyHidden').value = key;
   document.getElementById('adminKeyCard').style.display = 'none';
   document.getElementById('editForm').style.display = 'block';
 }
+
+// Si venimos desde ver_evaluacion con la clave guardada en sessionStorage, la usamos
+window.addEventListener('DOMContentLoaded', () => {
+  const savedKey = sessionStorage.getItem('admin_key_tmp');
+  if (savedKey) {
+    sessionStorage.removeItem('admin_key_tmp');
+    document.getElementById('adminKeyHidden').value = savedKey;
+    document.getElementById('adminKeyCard').style.display = 'none';
+    document.getElementById('editForm').style.display = 'block';
+  }
+});
 </script>
 {% endblock %}

@@ -7,15 +7,18 @@
     <i class="bi bi-arrow-left"></i>
   </a>
   <h5 class="mb-0 fw-bold" style="color:var(--app-red-dark);">
-    Evaluación — {{ evl.collaborator.name }}
+    Evaluación #{{ evl.id }} — {{ evl.collaborator.name }}
   </h5>
   <span class="ms-auto d-flex gap-2">
-    <a href="{{ url_for('edit_evaluation', eval_id=evl.id) }}" class="btn btn-sm btn-outline-secondary">
+    <a href="{{ url_for('carta', eval_id=evl.id) }}" class="btn btn-sm btn-outline-danger">
+      <i class="bi bi-file-earmark-text me-1"></i> Carta
+    </a>
+    <button class="btn btn-sm btn-outline-secondary" onclick="openEdit()">
       <i class="bi bi-pencil me-1"></i> Editar
-    </a>
-    <a href="{{ url_for('carta', eval_id=evl.id) }}" class="btn btn-sm text-white" style="background:var(--app-red);">
-      <i class="bi bi-file-earmark-text me-1"></i> Ver carta
-    </a>
+    </button>
+    <button class="btn btn-sm btn-outline-danger" onclick="openDelete()">
+      <i class="bi bi-trash me-1"></i> Eliminar
+    </button>
   </span>
 </div>
 
@@ -66,7 +69,6 @@
     </span>
   </div>
 
-  <!-- Barra de la categoría -->
   <div class="px-3 pt-2 pb-1">
     <div class="kpi-progress-wrap">
       <div class="kpi-progress-bar"
@@ -116,4 +118,95 @@
   </div>
 </div>
 {% endif %}
+
+<!-- ── Modal: pedir clave para editar ── -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--app-red);color:#fff;padding:.7rem 1rem;">
+        <h6 class="modal-title mb-0"><i class="bi bi-pencil me-1"></i> Editar evaluación</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3" style="font-size:.85rem;">Ingresa la clave administrativa para editar esta evaluación.</p>
+        <input type="password" id="editKey" class="form-control" placeholder="Clave administrativa">
+        <div class="text-danger mt-2" id="editKeyErr" style="font-size:.78rem;display:none;">Clave incorrecta.</div>
+      </div>
+      <div class="modal-footer py-2">
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-sm text-white" style="background:var(--app-red);" onclick="goEdit()">
+          <i class="bi bi-pencil me-1"></i> Editar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: confirmar eliminación ── -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#b42318;color:#fff;padding:.7rem 1rem;">
+        <h6 class="modal-title mb-0"><i class="bi bi-trash me-1"></i> Eliminar evaluación</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:.88rem;" class="mb-2">Esta acción no se puede deshacer. Ingresa la clave para confirmar.</p>
+        <p class="mb-3" style="font-size:.82rem;color:#555;">
+          Evaluación #{{ evl.id }} — <strong>{{ evl.collaborator.name }}</strong><br>
+          {{ evl.period_start.strftime('%d/%m/%Y') }} – {{ evl.period_end.strftime('%d/%m/%Y') }}
+        </p>
+        <input type="password" id="deleteKey" class="form-control" placeholder="Clave administrativa">
+        <div class="text-danger mt-2" id="deleteKeyErr" style="font-size:.78rem;display:none;"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-sm text-white" style="background:#b42318;" onclick="confirmDelete()">
+          <i class="bi bi-trash me-1"></i> Eliminar definitivamente
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const editModalEl  = new bootstrap.Modal(document.getElementById('editModal'));
+const deleteModalEl = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+function openEdit()   { document.getElementById('editKey').value=''; document.getElementById('editKeyErr').style.display='none'; editModalEl.show(); }
+function openDelete() { document.getElementById('deleteKey').value=''; document.getElementById('deleteKeyErr').style.display='none'; deleteModalEl.show(); }
+
+// Editar: simplemente redirige a la página de edición pasando la clave por session storage
+function goEdit() {
+  const key = document.getElementById('editKey').value.trim();
+  if (!key) return;
+  // Guardamos la clave temporalmente y redirigimos
+  sessionStorage.setItem('admin_key_tmp', key);
+  window.location.href = "{{ url_for('edit_evaluation', eval_id=evl.id) }}";
+}
+
+// Eliminar: llama al endpoint DELETE con la clave
+async function confirmDelete() {
+  const key = document.getElementById('deleteKey').value.trim();
+  const errEl = document.getElementById('deleteKeyErr');
+  if (!key) { errEl.textContent='Ingresa la clave.'; errEl.style.display='block'; return; }
+
+  const formData = new FormData();
+  formData.append('admin_key', key);
+
+  const r = await fetch("{{ url_for('delete_evaluation', eval_id=evl.id) }}", {
+    method: 'POST',
+    body: formData
+  });
+  if (r.ok) {
+    window.location.href = "{{ url_for('dashboard') }}";
+  } else {
+    errEl.textContent = 'Clave incorrecta. No se eliminó la evaluación.';
+    errEl.style.display = 'block';
+  }
+}
+</script>
 {% endblock %}
