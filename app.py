@@ -19,7 +19,13 @@ def today_santiago():
 # ── App ───────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'kpi-secret-2025')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///kpi.db')
+
+# Render entrega DATABASE_URL con prefijo "postgres://" (obsoleto).
+# SQLAlchemy 2.x requiere "postgresql://". Lo corregimos aquí.
+_db_url = os.environ.get('DATABASE_URL', 'sqlite:///kpi.db')
+if _db_url.startswith('postgres://'):
+    _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
